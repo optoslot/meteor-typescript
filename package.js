@@ -7,7 +7,13 @@ Package.describe({
 
 Package.registerBuildPlugin({
 	name: "compileTypescript",
-	use: ["meteor"],
+	use: [
+		"meteor",
+
+		/* << ADD */
+		'ecmascript'
+		/* ADD >> */
+	],
 	sources: [
 		"plugin/compile-typescript.js"
 	],
