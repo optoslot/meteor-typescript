@@ -144,7 +144,7 @@ class SourcePlume {
 			return false;
 		}
 
-		for (let strIndex = str.length, charsIndex = this._chars.length; --strIndex >= 0, --charsIndex >= 0;) {
+		for (let strIndex = str.length, charsIndex = this._chars.length; --strIndex >= 0 && --charsIndex >= 0;) {
 			if (str.charAt(strIndex) !== this._chars[charsIndex]) {
 				return false;
 			}
@@ -222,33 +222,28 @@ class SourceProcessor {
 
 			switch (state) {
 				case ProcessArchState.Any: {
-					if (desiredArchState === ProcessArchState.Client) {
-						if (sourcePlume.endsWith(SourceProcessorWords.MeteorIsClientBegin)) {
-							state = ProcessArchState.Client;
-							subState = ProcessArchSubState.Code;
-							brackets = 1;
-							sourceBuffer.changeSizeWithDelta(-SourceProcessorWords.MeteorIsClientBegin.length);
-						}
-					} else if (desiredArchState === ProcessArchState.Server) {
-						if (sourcePlume.endsWith(SourceProcessorWords.MeteorIsServerBegin)) {
-							state = ProcessArchState.Server;
-							subState = ProcessArchSubState.Code;
-							brackets = 1;
-							sourceBuffer.changeSizeWithDelta(-SourceProcessorWords.MeteorIsServerBegin.length);
-						}
+					if (sourcePlume.endsWith(SourceProcessorWords.MeteorIsClientBegin)) {
+						state = ProcessArchState.Client;
+						subState = ProcessArchSubState.Code;
+						brackets = 1;
+						sourceBuffer.changeSizeWithDelta(-SourceProcessorWords.MeteorIsClientBegin.length);
 					}
-				}
+					else if (sourcePlume.endsWith(SourceProcessorWords.MeteorIsServerBegin)) {
+						state = ProcessArchState.Server;
+						subState = ProcessArchSubState.Code;
+						brackets = 1;
+						sourceBuffer.changeSizeWithDelta(-SourceProcessorWords.MeteorIsServerBegin.length);
+					}
+					break;
+				} // case
 				case ProcessArchState.Client:
 				case ProcessArchState.Server: {
 					if (subState === ProcessArchSubState.SingleLineComment) {
 						if (sourcePlume.endsWith(SourceProcessorWords.CloseSingleLineComment)) {
 							subState = ProcessArchSubState.Code;
-						} else {
-							sourceBuffer.changeSizeWithDelta(-1);
 						}
 					}
 					else if (subState === ProcessArchSubState.MultiLineComment) {
-						sourceBuffer.changeSizeWithDelta(-1);
 						if (sourcePlume.endsWith(SourceProcessorWords.CloseMultiLineComment)) {
 							subState = ProcessArchSubState.Code;
 						}
@@ -256,11 +251,9 @@ class SourceProcessor {
 					else if (subState === ProcessArchSubState.Code) {
 						if (sourcePlume.endsWith(SourceProcessorWords.OpenSinleLineComment)) {
 							subState = ProcessArchSubState.SingleLineComment;
-							sourceBuffer.changeSizeWithDelta(-SourceProcessorWords.OpenSinleLineComment);
 						}
 						else if (sourcePlume.endsWith(SourceProcessorWords.OpenMultiLineComment)) {
 							subState = ProcessArchSubState.MultiLineComment;
-							sourceBuffer.changeSizeWithDelta(-SourceProcessorWords.OpenMultiLineComment);
 						}
 						else if (sourcePlume.endsWith(SourceProcessorWords.OpenBracket)) {
 							brackets++;
@@ -268,14 +261,19 @@ class SourceProcessor {
 						else if (sourcePlume.endsWith(SourceProcessorWords.CloseBracket)) {
 							brackets--;
 							if (brackets <= 0) {
-								sourceBuffer.changeSizeWithDelta(-SourceProcessorWords.CloseBracket);
+								sourceBuffer.changeSizeWithDelta(-SourceProcessorWords.CloseBracket.length);
 								state = ProcessArchState.Any;
 								subState = ProcessArchSubState.Code;
+								break;
 							}
 						}
 					}
-				}
-			}
+					if (state !== desiredArchState) {
+						sourceBuffer.changeSizeWithDelta(-1);
+					}
+					break;
+				} // case
+			} // switch
 		} // for
 
 		return sourceBuffer.buildString();
